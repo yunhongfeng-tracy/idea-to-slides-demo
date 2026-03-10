@@ -1,0 +1,21 @@
+ALL TEXT MUST BE IN CHINESE. 一张白板手绘风格的封面图，作为"介绍深圳"PPT 的第一页。
+
+【主标题区域】（位于画面正中偏上，占整体高度约 40%）：
+- 超大号粗体手写标题"介绍深圳"
+- 标题左侧画一个摩天大楼简笔画（代表现代化），右侧画一个海浪简笔画（代表滨海城市）
+- 标题文字用蓝色马克笔，加粗，是整张图最醒目的元素
+
+【副标题区域】（主标题正下方，占整体高度约 15%）：
+- 橙色手写中号字："从小渔村到世界级创新之都"
+- 副标题下方画一条手绘波浪线作为装饰分隔
+
+【装饰区域】（画面中间散布，占整体高度约 30%，不遮挡文字）：
+- 左下角：一个手绘的地图简笔画，标注"广东"和"深圳"位置
+- 右下角：一个手绘的火箭简笔画，正在起飞（代表飞速发展）
+- 标题周围散布几个小星星和小圆点装饰，用不同颜色（蓝、绿、橙）
+
+【底部信息区域】（位于图片最底部，占整体高度约 15%）：
+- 居中，灰色小号手写："粤港澳大湾区核心城市"
+- 底部画一条淡灰色手绘横线作为页脚分隔
+
+Style: clean white whiteboard background, hand-drawn sketch like Excalidraw, thick colorful marker strokes, casual handwritten Chinese labels, simple doodle icons, wobbly hand-drawn arrows. No photorealistic elements.

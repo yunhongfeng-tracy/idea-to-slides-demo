@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>从一句话到白板图 · 逐层展开</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:    #f7f5ef;
+      --card:  #ffffff;
+      --ink:   #18161f;
+      --ink2:  #4a4560;
+      --ink3:  #999ab0;
+      --bdr:   #e3dfd8;
+      --b100:  #1d4ed8;
+      --b55:   rgba(29,78,216,0.55);
+      --b20:   rgba(29,78,216,0.18);
+      --b08:   rgba(29,78,216,0.07);
+      --b04:   rgba(29,78,216,0.035);
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Noto Sans SC',sans-serif;
+      background:var(--bg); color:var(--ink);
+      font-size:17px; line-height:1.8;
+    }
+
+    .page { width:80%; margin:0 auto; padding:60px 0 88px; }
+
+    .page-hd { text-align:center; margin-bottom:44px; animation:fadeUp .5s ease-out both; }
+    .eyebrow {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; letter-spacing:.2em; color:var(--ink3);
+      display:block; margin-bottom:12px;
+    }
+    .page-hd h1 {
+      font-family:'Noto Serif SC',serif;
+      font-size:clamp(1.8rem,4vw,2.6rem);
+      font-weight:900; letter-spacing:-.02em; line-height:1.2;
+    }
+    .page-hd p { margin-top:8px; font-size:16px; color:var(--ink2); }
+
+    /* ── 大容器 ── */
+    .tree {
+      background:var(--card);
+      border:1.5px solid var(--bdr);
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 28px rgba(0,0,0,.04);
+      animation:fadeUp .5s .06s ease-out both;
+    }
+
+    /* ── 层0：根节点 ── */
+    .root-row {
+      display:flex; align-items:center; gap:14px;
+      padding:24px 28px;
+      border-bottom:1.5px solid var(--bdr);
+    }
+    .root-badge {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; letter-spacing:.1em; color:var(--ink3);
+      background:rgba(0,0,0,.05);
+      padding:3px 10px; border-radius:6px; white-space:nowrap;
+    }
+    .root-text {
+      font-family:'Noto Serif SC',serif;
+      font-size:30px; font-weight:900; flex:1;
+    }
+    .open-btn {
+      display:flex; align-items:center; gap:6px;
+      padding:7px 16px; border-radius:20px;
+      border:1.5px solid rgba(29,78,216,.3);
+      background:var(--b04); color:var(--b100);
+      font-size:14px; font-family:inherit;
+      cursor:pointer; white-space:nowrap;
+      transition:background .2s,border-color .2s;
+    }
+    .open-btn:hover { background:var(--b20); border-color:rgba(29,78,216,.5); }
+    .open-btn .tri { font-size:9px; transition:transform .3s; display:inline-block; }
+    .open-btn.active .tri { transform:rotate(90deg); }
+
+    /* ── 层1 ── */
+    .tier1 { max-height:0; overflow:hidden; transition:max-height .55s cubic-bezier(.4,0,.2,1); }
+    .tier1.open { max-height:12000px; }
+    .tier1-wrap { background:var(--b04); border-left:3px solid var(--b100); padding:14px 24px 18px; }
+
+    /* 节点 */
+    .node { margin:4px 0; }
+
+    .node-hd {
+      display:flex; align-items:center; gap:10px;
+      padding:8px 12px; border-radius:8px;
+      cursor:pointer; user-select:none;
+      transition:background .18s;
+    }
+    .node-hd:hover { background:var(--b20); }
+    .node.open > .node-hd { background:var(--b20); }
+
+    .node-idx {
+      font-family:'JetBrains Mono',monospace;
+      font-size:13px; font-weight:700; color:var(--b100); min-width:32px;
+    }
+    .node-name { flex:1; font-weight:600; font-size:16px; }
+    .node-tri { font-size:11px; color:var(--ink3); transition:transform .3s; flex-shrink:0; }
+    .node.open > .node-hd .node-tri { transform:rotate(90deg); }
+
+    /* 大纲要点（始终可见，点击前就展示） */
+    .node-pts { margin:0 0 5px 44px; }
+    .node-pt {
+      font-size:14px; color:var(--ink3);
+      padding:1px 0 1px 14px; position:relative; line-height:1.5;
+    }
+    .node-pt::before {
+      content:'—'; position:absolute; left:0;
+      color:var(--b100); opacity:.35; font-size:12px;
+    }
+
+    /* ── 层2：完整内容 ── */
+    .tier2 { max-height:0; overflow:hidden; transition:max-height .45s cubic-bezier(.4,0,.2,1); }
+    .tier2.open { max-height:3000px; }
+    .tier2-wrap {
+      margin:4px 0 6px 30px;
+      background:var(--card);
+      border-left:2px solid var(--b55);
+      border-radius:0 8px 8px 0;
+      padding:14px 16px 14px 18px;
+    }
+    .tier2-label {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; letter-spacing:.1em; color:var(--ink3); margin-bottom:7px;
+    }
+    .tier2-body { font-size:15px; color:var(--ink2); line-height:1.85; }
+    .tier2-body strong { color:#b91c1c; font-weight:700; }
+    .tier3-text strong  { color:#b91c1c; font-weight:700; }
+
+    /* 展开提示词按钮 */
+    .prompt-btn {
+      display:inline-flex; align-items:center; gap:5px;
+      margin-top:12px; padding:5px 12px; border-radius:7px;
+      border:1px solid rgba(29,78,216,.25);
+      background:transparent; color:var(--b100);
+      font-size:13px; font-family:inherit; cursor:pointer;
+      transition:background .18s;
+    }
+    .prompt-btn:hover { background:var(--b08); }
+    .prompt-btn .tri { font-size:8px; transition:transform .3s; display:inline-block; }
+    .prompt-btn.active .tri { transform:rotate(90deg); }
+
+    /* ── 层3：提示词（浅色） ── */
+    .tier3 { max-height:0; overflow:hidden; transition:max-height .4s cubic-bezier(.4,0,.2,1); }
+    .tier3.open { max-height:3000px; }
+    .tier3-wrap { margin-top:10px; border-radius:8px; overflow:hidden; border:1px solid var(--b20); }
+    /* 提示词 + 图片并排 */
+    .tier3-row { display:flex; }
+    .tier3-row .tier3-text { flex:1; min-width:0; border-radius:0; }
+    .tier3-img-col {
+      width:44%; flex-shrink:0;
+      border-left:1px solid var(--b20);
+      background:var(--b08);
+      display:flex; align-items:center; justify-content:center;
+      padding:14px;
+    }
+    .tier3-img-col img { width:100%; border-radius:6px; display:block; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+
+    .tier3-bar {
+      background:var(--b04);
+      padding:8px 14px;
+      display:flex; align-items:center; gap:8px;
+      border-bottom:1px solid var(--b20);
+    }
+    .tier3-bar-lbl {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; letter-spacing:.1em; color:var(--b100); opacity:.65; flex:1;
+    }
+    .tier3-bar-type {
+      font-size:13px; padding:2px 8px; border-radius:6px;
+      background:var(--b08); color:var(--b100);
+    }
+    .tier3-text {
+      background:var(--card);
+      color:var(--ink2);
+      padding:16px 18px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:15px; line-height:1.85;
+      white-space:pre-wrap; word-break:break-all;
+    }
+
+    .foot {
+      text-align:center; margin-top:28px;
+      font-size:14px; color:var(--ink3);
+      animation:fadeUp .5s .2s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── Lightbox ── */
+    .tier3-img-col img { cursor:zoom-in; transition:opacity .15s; }
+    .tier3-img-col img:hover { opacity:.88; }
+    #lightbox {
+      display:none; position:fixed; inset:0; z-index:9999;
+      background:rgba(0,0,0,.78); backdrop-filter:blur(4px);
+      align-items:center; justify-content:center; cursor:zoom-out;
+    }
+    #lightbox.open { display:flex; animation:lbIn .2s ease-out; }
+    #lightbox-img {
+      max-width:90vw; max-height:90vh;
+      border-radius:10px;
+      box-shadow:0 24px 72px rgba(0,0,0,.55);
+    }
+    #lightbox-close {
+      position:fixed; top:20px; right:24px;
+      color:#fff; font-size:28px; line-height:1;
+      cursor:pointer; opacity:.7; transition:opacity .15s;
+      font-family:sans-serif; user-select:none;
+    }
+    #lightbox-close:hover { opacity:1; }
+    @keyframes lbIn {
+      from { opacity:0; transform:scale(.94); }
+      to   { opacity:1; transform:scale(1); }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    }
+    @media (max-width:580px) {
+      .root-text { font-size:22px; }
+      .tier1-wrap,.root-row { padding-left:14px; padding-right:14px; }
+      .page { width:92%; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header class="page-hd">
+    <span class="eyebrow">PPT 生成流水线 · 逐层递进</span>
+    <h1>从一句话到白板图</h1>
+    <p>点击每一层，看同一套内容如何层层具象化</p>
+  </header>
+
+  <div class="tree">
+
+    <!-- 层0 -->
+    <div class="root-row">
+      <span class="root-badge">输入起点</span>
+      <span class="root-text">介绍深圳</span>
+      <button class="open-btn" id="rootBtn" onclick="toggleRoot()">
+        <span class="tri">▶</span>
+        <span class="btn-txt">展开大纲</span>
+      </button>
+    </div>
+
+    <!-- 层1 -->
+    <div class="tier1" id="tier1">
+      <div class="tier1-wrap">
+
+        <!-- P01 封面 -->
+        <div class="node" id="n-p01">
+          <div class="node-hd" onclick="toggleNode('n-p01')">
+            <span class="node-idx">P01</span>
+            <span class="node-name">封面</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">主标题：深圳，敢闯敢试</div>
+            <div class="node-pt">副标题：从小渔村到创新之都</div>
+          </div>
+          <div class="tier2" id="t2-p01">
+            <div class="tier2-wrap">
+              <div class="tier2-label">封面文字</div>
+              <div class="tier2-body">
+                <strong>主标题</strong>：<strong>深圳，敢闯敢试</strong><br>
+                <strong>副标题</strong>：<strong>从小渔村到创新之都</strong>
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-p01',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-p01">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P01</span>
+                    <span class="tier3-bar-type">封面型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的封面图，作为 PPT 的第一页。
+
+【主标题区域】（画面正中偏上，约 40%）
+- 超大号粗体手写标题<strong>"深圳，敢闯敢试"</strong>
+- 标题左侧：摩天大楼简笔画；右侧：海浪简笔画
+- 标题文字用蓝色马克笔，是全图最醒目元素
+
+【副标题区域】（约 15%）
+- 橙色中号字：<strong>"从小渔村到创新之都"</strong>
+- 下方手绘波浪线装饰
+
+【装饰区域】
+- 左下：地图简笔画，标注"广东"和"深圳"
+- 右下：正在起飞的火箭简笔画
+- 标题周围散布蓝、绿、橙小星星
+
+【底部】
+- 灰色小号手写："粤港澳大湾区核心城市"</pre>
+                    <div class="tier3-img-col">
+                      <img src="p01-封面.png" alt="P01 封面效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ① 深圳概览 -->
+        <div class="node" id="n-1">
+          <div class="node-hd" onclick="toggleNode('n-1')">
+            <span class="node-idx">①</span>
+            <span class="node-name">深圳概览</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">地理位置与城市定位</div>
+            <div class="node-pt">从小渔村到国际都市的一句话概括</div>
+          </div>
+          <div class="tier2" id="t2-1">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                深圳位于<strong>中国广东省南部，珠江口东岸，与香港仅一河之隔</strong>。从人口不足 3 万的边陲小渔村，到常住人口超过 <strong>1766 万</strong>的国际化大都市，深圳用短短 40 多年完成了世界城市发展史上的奇迹。面积约<strong>1997 平方公里</strong>，亚热带海洋性气候，年均气温<strong>23°C</strong>，是中国<strong>四大一线城市</strong>之一，<strong>粤港澳大湾区核心城市</strong>。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-1',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-1">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P02</span>
+                    <span class="tier3-bar-type">中心辐射型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，介绍深圳的基本概况。
+
+【标题区域】（顶部 12%）
+- 左侧页码"02"，中间粗体标题<strong>"深圳在哪里？"</strong>
+
+【内容区域】（75%）
+中心：手绘中国地图，红点标注深圳，旁注<strong>香港</strong>
+四个信息气泡围绕地图（虚线圆角框）：
+- 左上（蓝）：尺子图标 + <strong>"面积：1997 平方公里"</strong>
+- 右上（绿）：人群图标 + <strong>"人口：1766 万"</strong>
+- 左下（橙）：温度计图标 + <strong>"年均气温：23°C"</strong>
+- 右下（紫）：奖牌图标 + <strong>"中国四大一线城市"</strong>
+每个气泡画虚线箭头指向中心地图
+
+【底部区域】（13%）
+- 蓝色手写：<strong>"粤港澳大湾区核心城市，紧邻香港"</strong></pre>
+                    <div class="tier3-img-col">
+                      <img src="p02-深圳概览.png" alt="P02 深圳概览效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② 历史与崛起 -->
+        <div class="node" id="n-2">
+          <div class="node-hd" onclick="toggleNode('n-2')">
+            <span class="node-idx">②</span>
+            <span class="node-name">历史与崛起</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">改革开放前的深圳（宝安县）</div>
+            <div class="node-pt">1980 年经济特区成立</div>
+            <div class="node-pt">40 年高速发展历程</div>
+          </div>
+          <div class="tier2" id="t2-2">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                <strong>1980 年 8 月 26 日</strong>，深圳经济特区正式成立。从「三来一补」加工业，历经 <strong>1990 年代深交所成立</strong>、产业升级，到 <strong>2000 年代华为腾讯</strong>等科技企业爆发，GDP 增长超 <strong>14000 倍</strong>，<strong>2020 年代突破 3 万亿元</strong>，跃居全国第三。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-2',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-2">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P03</span>
+                    <span class="tier3-bar-type">时间线型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，展示深圳 40 年的崛起历程。
+
+【标题区域】
+- 页码"03" + 粗体标题"40 年奇迹"
+
+【内容区域】
+顶部引导语（蓝色）："从小渔村到国际大都市"
+粗手绘水平箭头从左到右，5 个里程碑节点：
+- 节点1（红）：渔船图标 ↑ "1980年前 · 宝安县 · 人口不足3万"
+- 节点2（橙）：闪电图标 ↑ <strong>"1980年 · 经济特区成立"</strong>
+- 节点3（蓝）：股票图标 ↑ <strong>"1990年代 · 深交所成立"</strong>
+- 节点4（绿）：电脑图标 ↑ <strong>"2000年代 · 华为腾讯崛起"</strong>
+- 节点5（紫）：大楼图标 ↑ <strong>"2020年代 · GDP突破3万亿"</strong>
+
+【底部区域】
+- 绿色大字：<strong>"GDP 增长超 14000 倍"</strong> + 火箭图标</pre>
+                    <div class="tier3-img-col">
+                      <img src="p03-历史与崛起.png" alt="P03 历史与崛起效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ 经济与产业 -->
+        <div class="node" id="n-3">
+          <div class="node-hd" onclick="toggleNode('n-3')">
+            <span class="node-idx">③</span>
+            <span class="node-name">经济与产业</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">GDP 与经济体量（中国城市排名）</div>
+            <div class="node-pt">科技产业集群（华为、腾讯、大疆、比亚迪）</div>
+            <div class="node-pt">创新创业生态（「中国硅谷」）</div>
+          </div>
+          <div class="tier2" id="t2-3">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                2023 年 GDP 约 <strong>3.46 万亿元</strong>，全国第三。被誉为「<strong>中国硅谷</strong>」，汇聚<strong>华为、腾讯、大疆、比亚迪</strong>等世界级科技企业。高新技术企业超 <strong>2.3 万家</strong>，上市公司超<strong>300</strong>家，研发投入占 GDP 比重超<strong>5%</strong>，接近发达国家水平。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-3',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-3">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P04</span>
+                    <span class="tier3-bar-type">中心辐射型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，展示深圳的科技产业生态。
+
+【标题区域】
+- 页码"04" + 粗体标题<strong>"中国硅谷"</strong>
+
+【内容区域】
+画面正中心：蓝色虚线圆，写"深圳"，下方<strong>"GDP 3.46 万亿"</strong>
+围绕中心 5 个企业节点（圆角方框）：
+- 上（红）：信号塔图标 + <strong>"华为"</strong> · 全球通信巨头
+- 右上（蓝）：聊天气泡图标 + <strong>"腾讯"</strong> · 微信诞生地
+- 右下（橙）：无人机图标 + <strong>"大疆"</strong> · 全球份额超70%
+- 左下（绿）：汽车图标 + <strong>"比亚迪"</strong> · 新能源销量冠军
+- 左上（紫）：快递盒图标 + "顺丰 · 物流领军者"
+每个企业框到中心画手绘连线
+
+【底部区域】
+高新企业<strong>2.3 万家</strong> ／ 上市公司<strong>300+</strong> ／ 研发占GDP超<strong>5%</strong></pre>
+                    <div class="tier3-img-col">
+                      <img src="p04-经济与产业.png" alt="P04 经济与产业效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ 城市特色 -->
+        <div class="node" id="n-4">
+          <div class="node-hd" onclick="toggleNode('n-4')">
+            <span class="node-idx">④</span>
+            <span class="node-name">城市特色</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">年轻化城市（平均年龄约 32 岁）</div>
+            <div class="node-pt">移民城市文化（「来了就是深圳人」）</div>
+            <div class="node-pt">国际化与多元融合</div>
+          </div>
+          <div class="tier2" id="t2-4">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                平均年龄约 <strong>32 岁</strong>，<strong>中国最年轻的大城市</strong>。<strong>95%</strong> 以上人口来自全国各地，「<strong>来了就是深圳人</strong>」体现了城市的包容性。城市文化<strong>务实、创新、包容</strong>，与香港形成「<strong>深港双城</strong>」格局，国际学校、国际医疗、国际商务配套完善。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-4',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-4">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P05</span>
+                    <span class="tier3-bar-type">三列并排型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，展示深圳的城市特色与文化。
+
+【标题区域】
+- 页码"05" + 粗体标题<strong>"来了就是深圳人"</strong>
+
+【内容区域】
+顶部引导语（橙色）："一座没有'外地人'的城市"
+三列并排展示：
+
+左列（蓝色）
+- 奔跑人图标 + 大字"年轻"
+- 要点：<strong>"平均年龄32岁 · 最年轻大城市"</strong>
+
+中列（绿色）
+- 多人手拉手图标 + 大字"包容"
+- 要点：<strong>"95%来自全国 · 典型移民城市"</strong>
+
+右列（橙色）
+- 地球图标 + 大字"国际化"
+- 要点：<strong>"深港双城"</strong> · 大量外籍人士
+
+【底部区域】
+- 绿色加粗：<strong>"务实 · 创新 · 包容"</strong></pre>
+                    <div class="tier3-img-col">
+                      <img src="p05-城市特色.png" alt="P05 城市特色效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑤ 标志性地标 -->
+        <div class="node" id="n-5">
+          <div class="node-hd" onclick="toggleNode('n-5')">
+            <span class="node-idx">⑤</span>
+            <span class="node-name">标志性地标与景点</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">地标建筑（平安金融中心、京基 100）</div>
+            <div class="node-pt">自然景观（大梅沙、梧桐山、红树林）</div>
+            <div class="node-pt">文化场所（深圳图书馆、海上世界）</div>
+          </div>
+          <div class="tier2" id="t2-5">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                <strong>平安金融中心</strong>（<strong>592.5 米</strong>，中国第二高楼）、<strong>梧桐山</strong>（<strong>943.7 米</strong>）、<strong>大梅沙海滨公园</strong>、<strong>红树林自然保护区</strong>，<strong>东西涌被誉为中国最美八大海岸线之一</strong>。文化场所有<strong>深圳图书馆</strong>（藏书超 1000 万册）、<strong>海上世界</strong>、<strong>华侨城创意文化园</strong>。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-5',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-5">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P06</span>
+                    <span class="tier3-bar-type">分区展示型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，展示深圳的标志性地标和景点。
+
+【标题区域】
+- 页码"06" + 粗体标题"深圳地标"
+
+【内容区域】（三区域，虚线竖线分隔）
+
+左侧（蓝色）"地标建筑"
+- 超高大楼：<strong>"平安金融中心 · 592.5米"</strong>
+- 稍矮大楼："京基100 · 441.8米"
+- 展翅造型："市民中心"
+
+中间（绿色）"自然景观"
+- 山峰：<strong>"梧桐山 · 943.7米"</strong>
+- 海浪沙滩：<strong>"大梅沙海滨"</strong>
+- 树木：<strong>"红树林保护区"</strong>
+
+右侧（橙色）"文化场所"
+- 打开的书：<strong>"深圳图书馆"</strong>
+- 轮船：<strong>"海上世界"</strong>
+- 画框：<strong>"华侨城创意园"</strong>
+
+【底部区域】
+- 蓝色手写：<strong>"东西涌——中国最美八大海岸线之一"</strong></pre>
+                    <div class="tier3-img-col">
+                      <img src="p06-地标与景点.png" alt="P06 地标与景点效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑥ 未来展望 -->
+        <div class="node" id="n-6">
+          <div class="node-hd" onclick="toggleNode('n-6')">
+            <span class="node-idx">⑥</span>
+            <span class="node-name">未来展望</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">粤港澳大湾区核心引擎</div>
+            <div class="node-pt">中国特色社会主义先行示范区</div>
+            <div class="node-pt">科技创新与可持续发展愿景</div>
+          </div>
+          <div class="tier2" id="t2-6">
+            <div class="tier2-wrap">
+              <div class="tier2-label">完整内容</div>
+              <div class="tier2-body">
+                深圳是<strong>粤港澳大湾区核心引擎</strong>，<strong>2019 年</strong>获批建设<strong>中国特色社会主义先行示范区</strong>。全力推动<strong>人工智能、生物医药、新能源</strong>等战略性新兴产业，公交车和出租车已实现 <strong>100% 纯电动化</strong>，<strong>前海合作区</strong>与<strong>河套创新区</strong>是深港合作前沿阵地。
+              </div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-6',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-6">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P07</span>
+                    <span class="tier3-bar-type">流程型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的图，展示深圳的未来发展方向。
+
+【标题区域】
+- 页码"07" + 粗体标题"深圳的下一站"
+
+【内容区域】（上下两层）
+上层（两个大方向并排）：
+- 左（蓝色大框）<strong>"大湾区核心引擎"</strong>
+  深圳-香港-广州三角形，内写<strong>"粤港澳大湾区"</strong>
+  框底：<strong>前海合作区 · 河套创新区</strong>
+- 右（绿色大框）<strong>"先行示范区"</strong>
+  旗帜图标 + 法治 · 民生 · 生态标签
+两框之间画手绘加号连接
+
+下层（新兴产业带，水平箭头）：
+- 机器人图标 → <strong>"人工智能"</strong>
+- DNA螺旋图标 → <strong>"生物医药"</strong>
+- 电池图标 → <strong>"新能源"</strong>
+箭头下方：<strong>"公交出租车100%纯电动化"</strong> + 绿色打勾
+
+【底部区域】
+- 紫色加粗："创新驱动，绿色未来"</pre>
+                    <div class="tier3-img-col">
+                      <img src="p07-未来展望.png" alt="P07 未来展望效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- P08 总结 -->
+        <div class="node" id="n-p08">
+          <div class="node-hd" onclick="toggleNode('n-p08')">
+            <span class="node-idx">P08</span>
+            <span class="node-name">总结</span>
+            <span class="node-tri">▶</span>
+          </div>
+          <div class="node-pts">
+            <div class="node-pt">框架页，综合提炼全部章节关键词</div>
+          </div>
+          <div class="tier2" id="t2-p08">
+            <div class="tier2-wrap">
+              <div class="tier2-label">说明</div>
+              <div class="tier2-body">总结页从以上所有章节综合提炼关键词，作为 PPT 的收尾，呈现「<strong>40 年</strong> · <strong>创新</strong> · <strong>年轻</strong> · <strong>包容</strong> · <strong>速度</strong>」的城市画像。</div>
+              <button class="prompt-btn" onclick="togglePrompt('t3-p08',this)">
+                <span class="tri">▶</span> 展开图片提示词
+              </button>
+              <div class="tier3" id="t3-p08">
+                <div class="tier3-wrap">
+                  <div class="tier3-bar">
+                    <span class="tier3-bar-lbl">图片提示词 · P08</span>
+                    <span class="tier3-bar-type">关键词云型</span>
+                  </div>
+                  <div class="tier3-row">
+                    <pre class="tier3-text">一张白板手绘风格的总结图，作为"介绍深圳"PPT 的最后一页。
+
+【标题区域】
+- 页码"08" + 粗体标题"深圳——创新之都"
+
+【内容区域】（上下两部分）
+上半部（35%）：
+大号箭头从左到右
+- 左端：渔船图标 + "1980年 · 小渔村"
+- 右端：大楼群图标 + <strong>"2026年 · GDP 3.46万亿"</strong>
+- 中间红色大字<strong>"40年"</strong>
+
+下半部（65%）关键词云：
+- 最大（蓝，居中）：<strong>"创新"</strong>
+- 大（绿，左上）：<strong>"年轻"</strong>    大（橙，右上）：<strong>"包容"</strong>
+- 中（紫，左下）：<strong>"速度"</strong>    中（红，右侧）："科技"
+- 中（蓝，上方）："国际化"
+- 小（绿，右下）："大湾区"  小（橙，左侧）："先行者"
+
+【底部区域】
+- 蓝色加粗大字：<strong>"敢闯敢试，深圳速度定义中国速度"</strong>
+- 下方手绘波浪线收尾</pre>
+                    <div class="tier3-img-col">
+                      <img src="p08-总结.png" alt="P08 总结效果图">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tier1-wrap -->
+    </div><!-- /tier1 -->
+  </div><!-- /tree -->
+
+  <p class="foot">点击每层节点逐步展开 · 一句话 → 大纲要点 → 完整内容 → 图片提示词</p>
+
+</div>
+
+<script>
+  function toggleRoot() {
+    const t1  = document.getElementById('tier1');
+    const btn = document.getElementById('rootBtn');
+    const open = t1.classList.toggle('open');
+    btn.classList.toggle('active', open);
+    btn.querySelector('.btn-txt').textContent = open ? '收起大纲' : '展开大纲';
+  }
+
+  function toggleNode(id) {
+    const node = document.getElementById(id);
+    const open = node.classList.toggle('open');
+    const t2 = node.querySelector(':scope > .tier2');
+    if (t2) t2.classList.toggle('open', open);
+  }
+
+  function togglePrompt(t3Id, btn) {
+    const t3 = document.getElementById(t3Id);
+    const open = t3.classList.toggle('open');
+    btn.classList.toggle('active', open);
+  }
+
+
+</script>
+
+<div id="lightbox">
+  <span id="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  // Lightbox（在 DOM 渲染后执行）
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  document.querySelectorAll('.tier3-img-col img').forEach(img => {
+    img.addEventListener('click', () => {
+      lbImg.src = img.src;
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+  lb.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+  function closeLightbox() {
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+</script>
+</body>
+</html>

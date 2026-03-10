@@ -1,0 +1,17 @@
+# API Key 文件（绝对不能上传）
+api.md
+api
+
+# 本地 Claude Code 配置
+.claude/
+
+# py/ 目录中生成的图片（test-cases 内的图片保留）
+py/*.png
+py/*.jpg
+
+# 本地图片目录
+图片/
+
+# 系统文件
+.DS_Store
+Thumbs.db
