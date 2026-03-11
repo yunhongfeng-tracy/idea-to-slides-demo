@@ -186,6 +186,29 @@
       white-space:pre-wrap; word-break:break-all;
     }
 
+    /* ── 操作栏 ── */
+    .action-bar {
+      display:flex; align-items:center; justify-content:center; gap:12px;
+      padding:16px 28px;
+      border-top:1.5px solid var(--bdr);
+      background:var(--b04);
+    }
+    .copy-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 18px; border-radius:20px;
+      border:1.5px solid rgba(29,78,216,.3);
+      background:var(--card); color:var(--b100);
+      font-size:15px; font-family:inherit;
+      cursor:pointer; white-space:nowrap;
+      transition:background .2s, border-color .2s, color .2s;
+    }
+    .copy-btn:hover { background:var(--b20); border-color:rgba(29,78,216,.5); }
+    .copy-btn.copied {
+      background:#059669; border-color:#059669; color:#fff;
+      pointer-events:none;
+    }
+    .copy-btn .icon { font-size:14px; }
+
     .foot {
       text-align:center; margin-top:28px;
       font-size:16px; color:var(--ink3);
@@ -229,6 +252,8 @@
       .root-text { font-size:24px; }
       .tier1-wrap,.root-row { padding-left:14px; padding-right:14px; }
       .page { width:92%; }
+      .action-bar { flex-wrap:wrap; padding:12px 14px; gap:8px; }
+      .copy-btn { font-size:13px; padding:6px 14px; }
     }
   </style>
 </head>
@@ -716,6 +741,20 @@
 
       </div><!-- /tier1-wrap -->
     </div><!-- /tier1 -->
+
+    <!-- 操作栏 -->
+    <div class="action-bar">
+      <button class="copy-btn" onclick="copyOutline(this)">
+        <span class="icon">&#x1F4CB;</span> 复制大纲
+      </button>
+      <button class="copy-btn" onclick="copyBody(this)">
+        <span class="icon">&#x1F4DD;</span> 复制正文
+      </button>
+      <button class="copy-btn" onclick="copyPrompts(this)">
+        <span class="icon">&#x1F3A8;</span> 复制提示词
+      </button>
+    </div>
+
   </div><!-- /tree -->
 
   <p class="foot">点击每层节点逐步展开 · 一句话 → 大纲要点 → 完整内容 → 图片提示词</p>
@@ -744,6 +783,62 @@
     btn.classList.toggle('active', open);
   }
 
+  // 复制反馈：按钮短暂变绿
+  function flashCopied(btn) {
+    const orig = btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML = '<span class="icon">&#x2714;</span> 已复制';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 1500);
+  }
+
+  // 复制大纲：页码 + 节点名 + 要点
+  function copyOutline(btn) {
+    const lines = [];
+    document.querySelectorAll('.node').forEach(node => {
+      const idx = node.querySelector('.node-idx').textContent.trim();
+      const name = node.querySelector('.node-name').textContent.trim();
+      lines.push(`${idx} ${name}`);
+      node.querySelectorAll('.node-pt').forEach(pt => {
+        lines.push(`  - ${pt.textContent.trim()}`);
+      });
+      lines.push('');
+    });
+    navigator.clipboard.writeText(lines.join('\n').trim());
+    flashCopied(btn);
+  }
+
+  // 复制正文：页码 + 节点名 + 完整内容
+  function copyBody(btn) {
+    const lines = [];
+    document.querySelectorAll('.node').forEach(node => {
+      const idx = node.querySelector('.node-idx').textContent.trim();
+      const name = node.querySelector('.node-name').textContent.trim();
+      const body = node.querySelector('.tier2-body');
+      if (!body) return;
+      lines.push(`## ${idx} ${name}`);
+      lines.push(body.textContent.trim());
+      lines.push('');
+    });
+    navigator.clipboard.writeText(lines.join('\n').trim());
+    flashCopied(btn);
+  }
+
+  // 复制提示词：页码 + 图类型 + 提示词文本
+  function copyPrompts(btn) {
+    const lines = [];
+    document.querySelectorAll('.node').forEach(node => {
+      const wrap = node.querySelector('.tier3-wrap');
+      if (!wrap) return;
+      const lbl = wrap.querySelector('.tier3-bar-lbl').textContent.trim();
+      const type = wrap.querySelector('.tier3-bar-type').textContent.trim();
+      const text = wrap.querySelector('.tier3-text').textContent.trim();
+      lines.push(`## ${lbl}（${type}）`);
+      lines.push(text);
+      lines.push('\n---\n');
+    });
+    navigator.clipboard.writeText(lines.join('\n').trim());
+    flashCopied(btn);
+  }
 
 </script>
 
