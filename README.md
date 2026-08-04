@@ -2,6 +2,23 @@
 
 > 一套完整的流水线，把任意一句话主题，变成一整套白板手绘风格的 PPT 图片。
 
+[项目首页](https://yunhongfeng-tracy.github.io/idea-to-slides-demo/) · [在线互动演示](https://yunhongfeng-tracy.github.io/idea-to-slides-demo/test-cases/介绍深圳/index.html)
+
+这个项目不仅展示最后生成的图片，也保留从一句话、大纲、完整正文、分页内容到图片提示词的全部中间产物。你可以沿着同一条内容链逐层检查、修改和复用，而不是把结果交给一次不可控的“直接生成”。
+
+## 项目预览
+
+[![“介绍深圳”互动演示初始界面](./output/playwright/demo-overview.png)](https://yunhongfeng-tracy.github.io/idea-to-slides-demo/test-cases/介绍深圳/index.html)
+
+打开互动页后，从“介绍深圳”这一句话开始，依次展开大纲、完整内容和每页图片提示词；也可以一键复制大纲、正文或整套提示词。
+
+<details>
+<summary>查看提示词与成品图的展开效果</summary>
+
+![展开后的图片提示词与白板图](./output/playwright/demo-expanded.png)
+
+</details>
+
 ---
 
 ## 核心思路
@@ -120,6 +137,11 @@ test-cases/
 
 py/
 └── generate_image.py        # 图片生成脚本（调用 Nano Banana Pro API）
+
+output/
+└── playwright/
+    ├── demo-overview.png    # 互动演示初始界面
+    └── demo-expanded.png    # 提示词与成品图展开效果
 ```
 
 ---
